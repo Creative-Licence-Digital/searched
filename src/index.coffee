@@ -93,14 +93,37 @@ module.exports = (options) ->
     _remove { type: args.type, id: args.id }, done
 
   # Main action to search the index for content
-  @add { cmd: 'search' }, (args, done) ->
+  @add { cmd: 'search', type: "courseOrLesson" }, (args, done) ->
     q = args.query
+    query =
+      bool:
+        should: [
+          { match: title: q },
+          { match: description: q }
+        ]
+
     esClient.search
       index: indexName
-      body:
-        query:
-          match:
-            title: q
+      type: "lesson,course"
+      body: { query }
+    , (err, res) ->
+      return done(err) if err?
+      results = res.hits.hits or []
+      done null, results
+
+  # Main action to search the index for content
+  @add { cmd: 'search', type: "slide" }, (args, done) ->
+    q = args.query
+    query =
+      bool:
+        should: [
+          { match: text: q },
+        ]
+
+    esClient.search
+      index: indexName
+      type: "slide"
+      body: { query }
     , (err, res) ->
       return done(err) if err?
       results = res.hits.hits or []
