@@ -6,9 +6,11 @@ course = (course) ->
   app: course.audience?.application
 
 lesson = (lesson) ->
+  content = (lesson.configuration?.slides or []).map(slideText).join("\n")
   title: lesson.title
   description: lesson.description
   app: lesson.audience?.application
+  text: content
 
 slideText = (slide) ->
   separator = "\n"

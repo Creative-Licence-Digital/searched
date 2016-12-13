@@ -7,6 +7,7 @@ module.exports =
       should: [
         { match: title: q },
         { match: description: q }
+        { match: text: q }
       ]
 
 

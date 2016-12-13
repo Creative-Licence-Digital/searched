@@ -33,4 +33,3 @@ module.exports = (esClient, indexName) ->
       return done(err) if err?
       results = res.hits.hits or []
       done null, results
-

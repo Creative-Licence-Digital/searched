@@ -47,4 +47,3 @@ module.exports = (options) ->
     esc.search { type: args.type, query: args.query }, done
 
   return { name: pluginName }
-
