@@ -1,0 +1,14 @@
+{
+  "name": "searched",
+  "version": "1.0.0",
+  "description": "Ed Search Micro Service",
+  "main": "src/index.js",
+  "scripts": {
+  },
+  "author": "Mathieu Guillout <guillout.mathieu@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "elasticsearch": "^12.1.2",
+    "seneca": "^3.2.2"
+  }
+}
