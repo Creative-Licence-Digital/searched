@@ -9,6 +9,11 @@ module.exports = (options) ->
   indexName  = options.index
   esClient   = null
 
+  _removeAllSlidesForLesson = (lessonId, done) ->
+    # TODO
+    #console.error("Remove all slides for lesson", lessonId)
+    done()
+
   _remove = ({ type, id }, done) ->
     esClient.delete
       index: indexName
@@ -73,6 +78,7 @@ module.exports = (options) ->
     doc   = _extractLessonData(args.doc)
     tasks = []
     tasks.push (n) -> _addOrUpdate({ type: 'lesson', id, doc }, n)
+    tasks.push (n) -> _removeAllSlidesForLesson(id, n)
     tasks = tasks.concat (args.doc.configuration?.slides or [])[0..0].map (slide) => (n) =>
       ndoc = _.extend slide, _id: (id + "-" + slide.name), lesson: args.doc.toJSON()
       @act { cmd: 'update', type: 'slide', doc: ndoc }, n
@@ -85,6 +91,20 @@ module.exports = (options) ->
 
   @add { cmd: 'delete' }, (args, done) ->
     _remove { type: args.type, id: args.id }, done
+
+  # Main action to search the index for content
+  @add { cmd: 'search' }, (args, done) ->
+    q = args.query
+    esClient.search
+      index: indexName
+      body:
+        query:
+          match:
+            title: q
+    , (err, res) ->
+      return done(err) if err?
+      results = res.hits.hits or []
+      done null, results
 
   return { name: pluginName }
 
