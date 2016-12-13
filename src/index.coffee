@@ -1,84 +1,35 @@
-es     = require('elasticsearch')
-async  = require('async')
-_      = require('underscore')
-seneca = require('seneca')()
+es      = require('elasticsearch')
+async   = require('async')
+_       = require('underscore')
+seneca  = require('seneca')()
+queries = require('./queries')
+format  = require('./format')
 
 module.exports = (options) ->
  
   pluginName = 'search'
   indexName  = options.index
-  esClient   = null
-
-  _removeAllSlidesForLesson = (lessonId, done) ->
-    # TODO
-    #console.error("Remove all slides for lesson", lessonId)
-    done()
-
-  _remove = ({ type, id }, done) ->
-    esClient.delete
-      index: indexName
-      type: type
-      id: id
-    , (err, resp) -> done(err, {})
-
-  _addOrUpdate = ({ type, id, doc }, done) ->
-    esClient.update
-      index: indexName
-      type: type
-      id: id
-      body:
-        doc: doc
-        upsert: doc
-    , (err, resp) -> done(err, {})
-
-  _extractCourseData = (course) ->
-    title: course.title
-    description: course.description
-    app: course.audience?.application
-
-  _extractLessonData = (lesson) ->
-    title: lesson.title
-    description: lesson.description
-    app: lesson.audience?.application
-
-  _extractSlideText = (slide) ->
-    separator = "\n"
-    mediaRegex = /\.(png|jpg|jpgeg|avi|mp3|mp4)$/i
-    if _.isArray(slide)
-      return slide.map(_extractSlideText).join(separator)
-    else if _.isObject(slide)
-      _.values(slide).map(_extractSlideText).join(separator)
-    else if _.isString(slide) and not(slide.match(mediaRegex))
-      slide
-    else
-      ""
-
-  _extractSlideData = (slide) ->
-    name: slide.name
-    data: slide.data
-    app: slide.lesson.audience?.application
-    lesson: slide.lesson._id.toString()
-    text: _extractSlideText(slide.data)
+  esClient   = null # Direct reference to the Elastic Search Client
+  esc        = null # Helper functions to interact with the ES instance
 
   # Available actions on the plugin 
   @add { init: pluginName }, (args, done) ->
     console.log("Connecting to Elastic Search", options.host)
-    esClient = new es.Client
-      host: options.host
-
+    esClient = new es.Client host: options.host
+    esc      = require('./elasticsearch')(esClient, indexName)
     esClient.ping { requestTimeout: Infinity }, (err) -> done(err)
 
   @add { cmd: 'update', type: 'course' }, (args, done) ->
     id  = args.doc._id.toString()
-    doc = _extractCourseData(args.doc)
-    _addOrUpdate { type: 'course', id, doc }, done
+    doc = format.course(args.doc)
+    esc.addOrUpdate { type: 'course', id, doc }, done
 
   @add { cmd: 'update', type: 'lesson' }, (args, done) =>
     id    = args.doc._id.toString()
-    doc   = _extractLessonData(args.doc)
+    doc   = format.lesson(args.doc)
     tasks = []
-    tasks.push (n) -> _addOrUpdate({ type: 'lesson', id, doc }, n)
-    tasks.push (n) -> _removeAllSlidesForLesson(id, n)
+    tasks.push (n) -> esc.addOrUpdate({ type: 'lesson', id, doc }, n)
+    tasks.push (n) -> esc.removeAllSlidesForLesson(id, n)
     tasks = tasks.concat (args.doc.configuration?.slides or [])[0..0].map (slide) => (n) =>
       ndoc = _.extend slide, _id: (id + "-" + slide.name), lesson: args.doc.toJSON()
       @act { cmd: 'update', type: 'slide', doc: ndoc }, n
@@ -86,48 +37,14 @@ module.exports = (options) ->
     
   @add { cmd: 'update', type: 'slide' }, (args, done) ->
     id   = args.doc._id.toString()
-    ndoc = _extractSlideData(args.doc)
-    _addOrUpdate { type: 'slide', id, doc: ndoc }, done
+    ndoc = format.slide(args.doc)
+    esc.addOrUpdate { type: 'slide', id, doc: ndoc }, done
 
   @add { cmd: 'delete' }, (args, done) ->
-    _remove { type: args.type, id: args.id }, done
+    esc.remove { type: args.type, id: args.id }, done
 
-  # Main action to search the index for content
-  @add { cmd: 'search', type: "courseOrLesson" }, (args, done) ->
-    q = args.query
-    query =
-      bool:
-        should: [
-          { match: title: q },
-          { match: description: q }
-        ]
-
-    esClient.search
-      index: indexName
-      type: "lesson,course"
-      body: { query }
-    , (err, res) ->
-      return done(err) if err?
-      results = res.hits.hits or []
-      done null, results
-
-  # Main action to search the index for content
-  @add { cmd: 'search', type: "slide" }, (args, done) ->
-    q = args.query
-    query =
-      bool:
-        should: [
-          { match: text: q },
-        ]
-
-    esClient.search
-      index: indexName
-      type: "slide"
-      body: { query }
-    , (err, res) ->
-      return done(err) if err?
-      results = res.hits.hits or []
-      done null, results
+  @add { cmd: 'search' }, (args, done) ->
+    esc.search { type: args.type, query: args.query }, done
 
   return { name: pluginName }
 
