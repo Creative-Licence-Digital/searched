@@ -1,10 +1,16 @@
 queries = require './queries'
 
 esc = (esClient, indexName) ->
-  removeAllSlidesForLesson = (lessonId, done) ->
+  _removeAllSlidesForLessons = (lessonIds, done) ->
     # TODO
     #console.error("Remove all slides for lesson", lessonId)
-    done()
+    esClient.deleteByQuery
+      index: indexName
+      type: 'slide'
+      body:
+        query:
+          terms: lesson: lessonIds
+    , done
 
   _remove = ({ type, id }) ->
     index: indexName
@@ -37,7 +43,7 @@ esc = (esClient, indexName) ->
       done null, results
 
   {
-    removeAllSlidesForLesson
+    _removeAllSlidesForLessons
     _remove
     _addOrUpdate
     remove

@@ -36,6 +36,7 @@ module.exports = (options) ->
 
   @add { cmd: 'index', type: 'lesson' }, (args, done) ->
     lessons = args.docs
+    ids     = lessons.map (l) -> l._id.toString()
     tasks   = lessons.map (lesson) ->
       id     = lesson._id.toString()
       doc    = format.lesson(lesson)
@@ -54,10 +55,13 @@ module.exports = (options) ->
           upd.body ]
         
     tasks = _.flatten(tasks)
-    esClient.bulk body: tasks, (err, resp) ->
+    esc._removeAllSlidesForLessons ids, (err) ->
       console.error(err) if err?
-      done err, {}
-    
+      esClient.bulk body: tasks, (err, resp) ->
+        console.error(err) if err?
+        done err, {}
+  
+  # Takes 2 parameters, type of document, and id of the document
   @add { cmd: 'delete' }, (args, done) ->
     esc.remove { type: args.type, id: args.id }, done
 
