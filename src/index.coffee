@@ -19,27 +19,45 @@ module.exports = (options) ->
     esc      = require('./elasticsearch')(esClient, indexName)
     esClient.ping { requestTimeout: Infinity }, (err) -> done(err)
 
-  @add { cmd: 'update', type: 'course' }, (args, done) ->
-    id  = args.doc._id.toString()
-    doc = format.course(args.doc)
-    esc.addOrUpdate { type: 'course', id, doc }, done
+  @add { cmd: 'index', type: 'course' }, (args, done) ->
+    courses = args.docs
+    tasks   = courses.map (course) ->
+      id     = course._id.toString()
+      doc    = format.course(course)
+      update = esc._addOrUpdate({ type: "course", id, doc })
+      [{ update: { _id: update.id, _type: update.type, _index: update.index }},
+        update.body ]
 
-  @add { cmd: 'update', type: 'lesson' }, (args, done) =>
-    id    = args.doc._id.toString()
-    doc   = format.lesson(args.doc)
-    tasks = []
-    tasks.push (n) -> esc.addOrUpdate({ type: 'lesson', id, doc }, n)
-    tasks.push (n) -> esc.removeAllSlidesForLesson(id, n)
-    tasks = tasks.concat (args.doc.configuration?.slides or [])[0..0].map (slide) => (n) =>
-      ndoc = _.extend slide, _id: (id + "-" + slide.name), lesson: args.doc.toJSON()
-      @act { cmd: 'update', type: 'slide', doc: ndoc }, n
-    async.series tasks, done
+    tasks = _.flatten(tasks)
+
+    esClient.bulk body: tasks, (err, resp) ->
+      console.error(err) if err?
+      done err, {}
+
+  @add { cmd: 'index', type: 'lesson' }, (args, done) ->
+    lessons = args.docs
+    tasks   = lessons.map (lesson) ->
+      id     = lesson._id.toString()
+      doc    = format.lesson(lesson)
+      slides = lesson.configuration.slides or []
+      update = esc._addOrUpdate({ type: "lesson", id, doc })
+
+      tasks  = [{ update: { _id: update.id, _type: update.type, _index: update.index }},
+                  update.body ]
+
+      tasks  = tasks.concat slides.map (s) ->
+        sid = id + "-" + s.name
+        s   = _.extend s, { _id: sid, lesson: lesson }
+        d   = format.slide(s)
+        upd = esc._addOrUpdate({ type: "slide", id: sid, doc: d })
+        [{ update: { _id: update.id, _type: update.type, _index: update.index }},
+          upd.body ]
+        
+    tasks = _.flatten(tasks)
+    esClient.bulk body: tasks, (err, resp) ->
+      console.error(err) if err?
+      done err, {}
     
-  @add { cmd: 'update', type: 'slide' }, (args, done) ->
-    id   = args.doc._id.toString()
-    ndoc = format.slide(args.doc)
-    esc.addOrUpdate { type: 'slide', id, doc: ndoc }, done
-
   @add { cmd: 'delete' }, (args, done) ->
     esc.remove { type: args.type, id: args.id }, done
 

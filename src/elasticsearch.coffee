@@ -1,29 +1,31 @@
 queries = require './queries'
 
-module.exports = (esClient, indexName) ->
-  removeAllSlidesForLesson: (lessonId, done) ->
+esc = (esClient, indexName) ->
+  removeAllSlidesForLesson = (lessonId, done) ->
     # TODO
     #console.error("Remove all slides for lesson", lessonId)
     done()
 
-  remove: ({ type, id }, done) ->
-    esClient.delete
-      index: indexName
-      type: type
-      id: id
-    , (err, resp) -> done(err, {})
+  _remove = ({ type, id }) ->
+    index: indexName
+    type: type
+    id: id
 
-  addOrUpdate: ({ type, id, doc }, done) ->
-    esClient.update
-      index: indexName
-      type: type
-      id: id
-      body:
-        doc: doc
-        upsert: doc
-    , (err, resp) -> done(err, {})
+  _addOrUpdate = ({ type, id, doc }) ->
+    index: indexName
+    type: type
+    id: id
+    body:
+      doc: doc
+      upsert: doc
 
-  search: ({ type, query }, done) ->
+  remove = ({ type, id }, done) ->
+    esClient.delete _remove({ type, id }), (err, resp) -> done(err, {})
+
+  addOrUpdate = ({ type, id, doc }, done) ->
+    esClient.update _addOrUpdate({ type, id, doc }), (err, resp) -> done(err, {})
+
+  search = ({ type, query }, done) ->
     dict = { "courseOrLesson": "course,lesson", "slide": "slide" }
     esClient.search
       index: indexName
@@ -33,3 +35,14 @@ module.exports = (esClient, indexName) ->
       return done(err) if err?
       results = res.hits.hits or []
       done null, results
+
+  {
+    removeAllSlidesForLesson
+    _remove
+    _addOrUpdate
+    remove
+    addOrUpdate
+    search
+  }
+
+module.exports = esc
