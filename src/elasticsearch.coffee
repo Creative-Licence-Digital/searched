@@ -36,6 +36,7 @@ esc = (esClient, indexName) ->
     esClient.search
       index: indexName
       type: dict[type]
+      size: 50
       body: query: queries[type](query)
     , (err, res) ->
       return done(err) if err?
