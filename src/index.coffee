@@ -14,9 +14,7 @@ module.exports = (options) ->
       index: indexName
       type: type
       id: id
-    , (err, resp) ->
-      console.error(err, resp)
-      done(err, {})
+    , (err, resp) -> done(err, {})
 
   _addOrUpdate = ({ type, id, doc }, done) ->
     esClient.update
@@ -26,18 +24,17 @@ module.exports = (options) ->
       body:
         doc: doc
         upsert: doc
-    , (err, resp) ->
-      console.error(err) if err?
-      console.error(resp)
-      done err, {}
+    , (err, resp) -> done(err, {})
 
   _extractCourseData = (course) ->
     title: course.title
     description: course.description
+    app: course.audience?.application
 
   _extractLessonData = (lesson) ->
     title: lesson.title
     description: lesson.description
+    app: lesson.audience?.application
 
   _extractSlideText = (slide) ->
     separator = "\n"
@@ -52,8 +49,11 @@ module.exports = (options) ->
       ""
 
   _extractSlideData = (slide) ->
-    data: slide
-    text: extractSlideText(slide.data)
+    name: slide.name
+    data: slide.data
+    app: slide.lesson.audience?.application
+    lesson: slide.lesson._id.toString()
+    text: _extractSlideText(slide.data)
 
   # Available actions on the plugin 
   @add { init: pluginName }, (args, done) ->
@@ -73,15 +73,15 @@ module.exports = (options) ->
     doc   = _extractLessonData(args.doc)
     tasks = []
     tasks.push (n) -> _addOrUpdate({ type: 'lesson', id, doc }, n)
-    tasks = tasks.concat (args.doc.configuration?.slides or []).map (slide) => (n) =>
-      doc = _.extend slide, _id: id + "-" + slide.name
-      @act { cmd: 'update', type: 'slide', doc }, n
+    tasks = tasks.concat (args.doc.configuration?.slides or [])[0..0].map (slide) => (n) =>
+      ndoc = _.extend slide, _id: (id + "-" + slide.name), lesson: args.doc.toJSON()
+      @act { cmd: 'update', type: 'slide', doc: ndoc }, n
     async.series tasks, done
     
   @add { cmd: 'update', type: 'slide' }, (args, done) ->
-    id  = args.doc._id.toString()
-    doc = _extractLessonData(args.doc)
-    _addOrUpdate { type: 'slide', id, doc }, done
+    id   = args.doc._id.toString()
+    ndoc = _extractSlideData(args.doc)
+    _addOrUpdate { type: 'slide', id, doc: ndoc }, done
 
   @add { cmd: 'delete' }, (args, done) ->
     _remove { type: args.type, id: args.id }, done
