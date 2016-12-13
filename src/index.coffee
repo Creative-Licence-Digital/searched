@@ -4,13 +4,13 @@ seneca = require('seneca')()
 module.exports = (options) ->
  
   pluginName = 'search'
-  indexName  = 'searched'
+  indexName  = options.index
   esClient   = null
 
   @add { init: pluginName }, (args, done) ->
-    console.log("Connecting to Elastic Search")
+    console.log("Connecting to Elastic Search", options.host)
     esClient = new es.Client
-      host: "search-edapp-yphya7va753klaq5zqo2re5mze.ap-southeast-2.es.amazonaws.com"
+      host: options.host
 
     esClient.ping { requestTimeout: Infinity }, (err) -> done(err)
 

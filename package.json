@@ -4,7 +4,8 @@
   "description": "Ed Search Micro Service",
   "main": "lib/index.js",
   "scripts": {
-    "build": "coffee -o lib/ src/"
+    "build": "coffee -o lib/ src/",
+    "watch": "coffee -w -o lib/ src/"
   },
   "author": "Mathieu Guillout <guillout.mathieu@gmail.com>",
   "license": "ISC",
