@@ -7,7 +7,7 @@ module.exports =
       filter: [
         { term: app: app }
       ]
-      must: [
+      should: [
         { match: title: q },
         { match: description: q }
         { match: text: q }
