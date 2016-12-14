@@ -2,8 +2,6 @@ queries = require './queries'
 
 esc = (esClient, indexName) ->
   _removeAllSlidesForLessons = (lessonIds, done) ->
-    # TODO
-    #console.error("Remove all slides for lesson", lessonId)
     esClient.deleteByQuery
       index: indexName
       type: 'slide'
@@ -31,12 +29,12 @@ esc = (esClient, indexName) ->
   addOrUpdate = ({ type, id, doc }, done) ->
     esClient.update _addOrUpdate({ type, id, doc }), (err, resp) -> done(err, {})
 
-  search = ({ type, query }, done) ->
+  search = ({ type, query, app }, done) ->
     dict = { "courseOrLesson": "course,lesson", "slide": "slide" }
     esClient.search
       index: indexName
       type: dict[type]
-      body: query: queries[type](query)
+      body: query: queries[type](query, app)
     , (err, res) ->
       return done(err) if err?
       results = res.hits.hits or []

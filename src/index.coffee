@@ -4,6 +4,9 @@ _       = require('underscore')
 seneca  = require('seneca')()
 queries = require('./queries')
 format  = require('./format')
+nbCourses = 0
+nbLessons = 0
+nbSlides  = 0
 
 module.exports = (options) ->
  
@@ -29,7 +32,8 @@ module.exports = (options) ->
         update.body ]
 
     tasks = _.flatten(tasks)
-
+  
+    nbCourses += courses.length
     esClient.bulk body: tasks, (err, resp) ->
       console.error(err) if err?
       done err, {}
@@ -54,6 +58,8 @@ module.exports = (options) ->
         [{ update: { _id: upd.id, _type: upd.type, _index: upd.index }},
           upd.body ]
         
+    nbLessons += lessons.length
+
     tasks = _.flatten(tasks)
     esc._removeAllSlidesForLessons ids, (err) ->
       console.error(err) if err?
@@ -66,7 +72,7 @@ module.exports = (options) ->
     esc.remove { type: args.type, id: args.id }, done
 
   @add { cmd: 'search' }, (args, done) ->
-    esc.search { type: args.type, query: args.query }, done
+    esc.search { type: args.type, query: args.query, app: args.app }, done
 
   # Remove all indexes
   @add { cmd: 'destroy' }, (args, done) ->

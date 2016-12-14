@@ -1,20 +1,26 @@
 
 
 module.exports =
-  courseOrLesson: (userInput) ->
+  courseOrLesson: (userInput, app) ->
     q = userInput
     bool:
-      should: [
+      filter: [
+        { term: app: app }
+      ]
+      must: [
         { match: title: q },
         { match: description: q }
         { match: text: q }
       ]
 
 
-  slide: (userInput) ->
+  slide: (userInput, app) ->
     q = userInput
     bool:
-      should: [
+      filter: [
+        { term: app: app }
+      ]
+      must: [
         { match: text: q },
       ]
 
