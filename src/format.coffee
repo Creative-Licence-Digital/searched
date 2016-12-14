@@ -27,6 +27,7 @@ slideText = (slide) ->
 slide = (slide) ->
   name: slide.name
   data: slide.data
+  type: slide.type
   app: slide.lesson.audience?.application
   lesson: slide.lesson._id.toString()
   text: slideText(slide.data)

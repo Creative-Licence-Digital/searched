@@ -51,7 +51,7 @@ module.exports = (options) ->
         s   = _.extend s, { _id: sid, lesson: lesson }
         d   = format.slide(s)
         upd = esc._addOrUpdate({ type: "slide", id: sid, doc: d })
-        [{ update: { _id: update.id, _type: update.type, _index: update.index }},
+        [{ update: { _id: upd.id, _type: upd.type, _index: upd.index }},
           upd.body ]
         
     tasks = _.flatten(tasks)
@@ -67,5 +67,9 @@ module.exports = (options) ->
 
   @add { cmd: 'search' }, (args, done) ->
     esc.search { type: args.type, query: args.query }, done
+
+  # Remove all indexes
+  @add { cmd: 'destroy' }, (args, done) ->
+    esClient.indices.delete { index: '_all' }, (err, res) -> done(err)
 
   return { name: pluginName }
