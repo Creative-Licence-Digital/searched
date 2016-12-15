@@ -76,6 +76,6 @@ module.exports = (options) ->
 
   # Remove all indexes
   @add { cmd: 'destroy' }, (args, done) ->
-    esClient.indices.delete { index: '_all' }, (err, res) -> done(err)
+    esClient.indices.delete { index: indexName }, (err, res) -> done(err)
 
   return { name: pluginName }
