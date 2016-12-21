@@ -14,7 +14,7 @@ module.exports =
       ]
 
 
-  slide: (userInput, app) ->
+  slides: (userInput, app) ->
     q = userInput
     bool:
       filter: [
