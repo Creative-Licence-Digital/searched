@@ -30,7 +30,7 @@ esc = (esClient, indexName) ->
     esClient.update _addOrUpdate({ type, id, doc }), (err, resp) -> done(err, {})
 
   search = ({ type, query, app }, done) ->
-    dict = { "courseOrLesson": "course,lesson", "slide": "slide" }
+    dict = { "courseOrLesson": "course,lesson", "slides": "slide" }
     esClient.search
       index: indexName
       type: dict[type]
