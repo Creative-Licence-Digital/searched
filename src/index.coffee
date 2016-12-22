@@ -20,7 +20,9 @@ module.exports = (options) ->
     console.log("Connecting to Elastic Search", options.host)
     esClient = new es.Client host: options.host
     esc      = require('./elasticsearch')(esClient, indexName)
-    esClient.ping { requestTimeout: Infinity }, (err) -> done(err)
+    esClient.ping { requestTimeout: Infinity }, (err) ->
+      console.error("Error while pinging ES", err) if err?
+      done()
 
   @add { cmd: 'index', type: 'course' }, (args, done) ->
     courses = args.docs
